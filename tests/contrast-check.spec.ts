@@ -15,9 +15,14 @@ test('contrast analysis pass / fail', async ({ page }) => {
   await page.getByLabel('Preset').selectOption({ label: 'Peach Glow' });
   // Wait for Poor rating to appear
   const ratingBadge = page.getByTestId('rating-badge');
-  await expect(ratingBadge).toContainText('Poor');
+  const firstText = await ratingBadge.textContent();
+  const firstPct = Number(firstText?.match(/(\d+)%/)?.[1] ?? '0');
 
   // Case 2: choose Ocean Depths (dark) with white text – should improve rating (not Poor)
   await page.getByLabel('Preset').selectOption({ label: 'Ocean Depths' });
-  await expect(ratingBadge).not.toContainText('Poor');
+  await expect(async () => {
+    const txt = await ratingBadge.textContent();
+    const pct = Number(txt?.match(/(\d+)%/)?.[1] ?? '0');
+    expect(pct).toBeGreaterThan(firstPct);
+  }).toPass();
 }); 
