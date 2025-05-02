@@ -27,7 +27,7 @@ const ContrastAnalysisPanel: FC<Props> = ({ result }) => {
   return (
     <div className="space-y-4">
       {/* Overall Rating */}
-      <div className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium ${rating.color}`}>
+      <div data-testid="rating-badge" className={`inline-flex items-center px-3 py-1 rounded-md text-sm font-medium ${rating.color}`}>
         {rating.label} ({Math.round(aaOverallPct)}% AA Pass)
       </div>
 
