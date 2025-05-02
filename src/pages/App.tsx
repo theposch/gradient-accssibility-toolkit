@@ -3,6 +3,7 @@ import { Menu, Layers, Clipboard, Undo, Redo } from 'lucide-react';
 import GradientCanvas from '@/components/GradientCanvas';
 import { type ContrastResult } from '@/engines/ContrastEngine';
 import ContrastAnalysisPanel from '@/components/ContrastAnalysisPanel';
+import TextOverlay from '@/components/TextOverlay';
 import {
   suggestTextColors,
   suggestGradientFixes,
@@ -276,40 +277,15 @@ const App: FC = () => {
                       onAnalysis={setAnalysis}
                       className="h-full"
                     />
-                    <div
-                      className={`absolute inset-0 select-none px-4 flex flex-col justify-center ${textAlign === 'left' ? 'items-start' : textAlign === 'center' ? 'items-center' : 'items-end'}`}
-                    >
-                      <h1 
-                        className="text-5xl font-semibold tracking-wide" 
-                        style={{ 
-                          color: textColor, 
-                          textAlign, 
-                          fontFamily: currentFont,
-                          ...(customFonts.some(f => f.name === currentFont) ? {
-                            fontSize: customFontStyles.headlineSize,
-                            lineHeight: customFontStyles.headlineHeight,
-                            letterSpacing: customFontStyles.headlineSpacing,
-                          } : {})
-                        }}
-                      >
-                        {headline}
-                      </h1>
-                      <p 
-                        className="max-w-xl mt-4 text-sm leading-relaxed" 
-                        style={{ 
-                          color: textColor, 
-                          textAlign, 
-                          fontFamily: currentFont,
-                          ...(customFonts.some(f => f.name === currentFont) ? {
-                            fontSize: customFontStyles.paragraphSize,
-                            lineHeight: customFontStyles.paragraphHeight,
-                            letterSpacing: customFontStyles.paragraphSpacing,
-                          } : {})
-                        }}
-                      >
-                        {paragraph}
-                      </p>
-                    </div>
+                    <TextOverlay
+                      headline={headline}
+                      paragraph={paragraph}
+                      textColor={textColor}
+                      textAlign={textAlign}
+                      currentFont={currentFont}
+                      customFonts={customFonts}
+                      customFontStyles={customFontStyles}
+                    />
                   </div>
                 ) : (
                   <div className="flex h-full w-full flex-col md:flex-row">
@@ -366,40 +342,15 @@ const App: FC = () => {
                         onAnalysis={setAnalysis}
                         className="h-full w-full"
                       />
-                      <div
-                        className={`absolute inset-0 select-none px-4 flex flex-col justify-center ${textAlign === 'left' ? 'items-start' : textAlign === 'center' ? 'items-center' : 'items-end'}`}
-                      >
-                        <h1 
-                          className="text-5xl font-semibold tracking-wide" 
-                          style={{ 
-                            color: textColor, 
-                            textAlign, 
-                            fontFamily: currentFont,
-                            ...(customFonts.some(f => f.name === currentFont) ? {
-                              fontSize: customFontStyles.headlineSize,
-                              lineHeight: customFontStyles.headlineHeight,
-                              letterSpacing: customFontStyles.headlineSpacing,
-                            } : {})
-                          }}
-                        >
-                          {headline}
-                        </h1>
-                        <p 
-                          className="max-w-xl mt-4 text-sm leading-relaxed" 
-                          style={{ 
-                            color: textColor, 
-                            textAlign, 
-                            fontFamily: currentFont,
-                            ...(customFonts.some(f => f.name === currentFont) ? {
-                              fontSize: customFontStyles.paragraphSize,
-                              lineHeight: customFontStyles.paragraphHeight,
-                              letterSpacing: customFontStyles.paragraphSpacing,
-                            } : {})
-                          }}
-                        >
-                          {paragraph}
-                        </p>
-                      </div>
+                      <TextOverlay
+                        headline={headline}
+                        paragraph={paragraph}
+                        textColor={textColor}
+                        textAlign={textAlign}
+                        currentFont={currentFont}
+                        customFonts={customFonts}
+                        customFontStyles={customFontStyles}
+                      />
                     </div>
                   </div>
                 )}
