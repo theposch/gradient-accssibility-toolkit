@@ -18,6 +18,6 @@ test('gradient flow', async ({ page }) => {
   await page.getByLabel('Preset').selectOption({ label: 'Lavender Mist' });
 
   // Check that AA pass percentage updates (analysis panel)
-  const stat = await page.getByText(/AA \(/).textContent();
+  const stat = await page.getByText(/AA \(/).first().textContent();
   expect(stat).not.toBeNull();
 }); 
