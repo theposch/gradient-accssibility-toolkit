@@ -1,5 +1,5 @@
 import { FC, useEffect, useState } from 'react';
-import { Menu, Layers } from 'lucide-react';
+import { Menu, Layers, Clipboard } from 'lucide-react';
 import GradientCanvas from '@/components/GradientCanvas';
 import { type ContrastResult } from '@/engines/ContrastEngine';
 import ContrastAnalysisPanel from '@/components/ContrastAnalysisPanel';
@@ -14,18 +14,26 @@ import TextSettings from '@/components/TextSettings';
 import SavedDrawer from '@/components/SavedDrawer';
 import { loadSaved, saveAll, type SavedGradient } from '@/utils/storage';
 import { toast } from 'sonner';
+import Tooltip from '@/components/Tooltip';
 
 const App: FC = () => {
   const [showOverlay, setShowOverlay] = useState(false);
   const [analysis, setAnalysis] = useState<ContrastResult | null>(null);
 
-  const [gradient, setGradient] = useState<string>(
-    'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)',
-  );
+  const initialGradient = 'linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%)';
+
+  // Committed gradient – basis for generating suggestions
+  const [baseGradient, setBaseGradient] = useState<string>(initialGradient);
+  // Currently displayed gradient (can be preview)
+  const [gradient, setGradient] = useState<string>(initialGradient);
+
   const [textColor, setTextColor] = useState<string>('#ffffff');
 
   const [textSuggestions, setTextSuggestions] = useState<SuggestedColor[]>([]);
   const [gradientFixes, setGradientFixes] = useState<GradientSuggestion[]>([]);
+
+  // Track which suggestion is being previewed
+  const [activeSuggestionCss, setActiveSuggestionCss] = useState<string | null>(null);
 
   const [activeTab, setActiveTab] = useState<'text' | 'gradient'>('text');
 
@@ -36,6 +44,11 @@ const App: FC = () => {
 
   const [saved, setSaved] = useState<SavedGradient[]>(() => loadSaved());
   const [drawerOpen, setDrawerOpen] = useState(false);
+
+  // Grid resolution for sampling (50–200)
+  const [grid, setGrid] = useState(100);
+
+  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
 
   const handleSave = () => {
     if (!analysis) return;
@@ -54,35 +67,61 @@ const App: FC = () => {
   };
 
   const handleLoad = (item: SavedGradient) => {
+    setBaseGradient(item.gradient);
     setGradient(item.gradient);
+    setActiveSuggestionCss(null);
     setTextColor(item.textColor);
   };
 
+  // Regenerate suggestions only when committed gradient or text color changes
   useEffect(() => {
-    setTextSuggestions(suggestTextColors(gradient));
-    setGradientFixes(suggestGradientFixes(gradient, textColor));
-  }, [gradient, textColor]);
+    setTextSuggestions(suggestTextColors(baseGradient));
+    setGradientFixes(suggestGradientFixes(baseGradient, textColor, grid));
+  }, [baseGradient, textColor, grid]);
 
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b bg-white">
         <h1 className="text-xl font-semibold">Contrast Checker</h1>
-        <button
-          type="button"
-          onClick={() => setDrawerOpen(true)}
-          className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-100"
-        >
-          <Menu className="w-4 h-4" />
-          Saved Gradients
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              navigator.clipboard.writeText(baseGradient);
+              toast.success('Gradient CSS copied');
+            }}
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-100"
+          >
+            <Clipboard className="w-4 h-4" />
+            Copy CSS
+          </button>
+          <button
+            type="button"
+            onClick={() => setDrawerOpen(true)}
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-100"
+          >
+            <Menu className="w-4 h-4" />
+            Saved Gradients
+          </button>
+        </div>
       </header>
 
       {/* Body */}
       <main className="flex flex-1 overflow-hidden">
         {/* Left Sidebar */}
         <aside className="w-[350px] overflow-y-auto border-r bg-white p-4">
-          <GradientEditor gradient={gradient} onChange={setGradient} />
+          {/* Editing in editor commits immediately */}
+          <GradientEditor
+            gradient={gradient}
+            onChange={(css) => {
+              setGradient(css);
+              if (activeSuggestionCss === null) {
+                // direct edit – commit immediately
+                setBaseGradient(css);
+              }
+            }}
+          />
           <TextSettings
             headline={headline}
             onHeadlineChange={setHeadline}
@@ -90,6 +129,8 @@ const App: FC = () => {
             onParagraphChange={setParagraph}
             textColor={textColor}
             onTextColorChange={setTextColor}
+            textAlign={textAlign}
+            onTextAlignChange={setTextAlign}
           />
         </aside>
 
@@ -104,26 +145,30 @@ const App: FC = () => {
                 className="absolute top-2 right-2 z-20 p-2 text-gray-600 hover:text-gray-900"
                 title="Toggle overlay"
               >
-                <Layers className="w-4 h-4" />
+                <Tooltip content="Toggle heat-map overlay">
+                  <Layers className="w-4 h-4" />
+                </Tooltip>
               </button>
               <div className="absolute inset-0 pointer-events-none">
                 <GradientCanvas
                   gradient={gradient}
                   textColor={textColor}
+                  grid={grid}
                   showOverlay={showOverlay}
                   onAnalysis={setAnalysis}
                   className="h-full"
                 />
                 <div
-                  className="absolute inset-0 flex flex-col items-center justify-center text-center pointer-events-none select-none px-4"
-                  style={{ color: textColor }}
+                  className={`absolute inset-0 select-none px-4 flex flex-col justify-center ${textAlign === 'left' ? 'items-start' : textAlign === 'center' ? 'items-center' : 'items-end'}`}
                 >
-                  <h1 className="text-5xl font-semibold tracking-wide">
-                    {headline}
-                  </h1>
-                  <p className="max-w-xl mt-4 text-sm leading-relaxed">
-                    {paragraph}
-                  </p>
+                  <div style={{ color: textColor }}>
+                    <h1 className="text-5xl font-semibold tracking-wide" style={{ textAlign }}>
+                      {headline}
+                    </h1>
+                    <p className="max-w-xl mt-4 text-sm leading-relaxed" style={{ textAlign }}>
+                      {paragraph}
+                    </p>
+                  </div>
                 </div>
               </div>
             </div>
@@ -148,8 +193,25 @@ const App: FC = () => {
               </button>
             </div>
 
+            {/* Grid resolution slider (visible only when overlay is on) */}
+            {showOverlay && (
+              <div className="px-4 py-2 flex items-center gap-2 text-xs border-b">
+                <span>Grid:</span>
+                <input
+                  type="range"
+                  min={50}
+                  max={200}
+                  step={10}
+                  value={grid}
+                  onChange={(e) => setGrid(Number(e.target.value))}
+                  className="flex-1"
+                />
+                <span>{grid}×{grid}</span>
+              </div>
+            )}
+
             {/* Suggestions content */}
-            <div className="p-4 flex-1 overflow-y-auto grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="p-4 flex-1 overflow-y-auto grid auto-rows-min gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {activeTab === 'text' && (
                 textSuggestions.length ? (
                   textSuggestions.map((s) => (
@@ -179,20 +241,69 @@ const App: FC = () => {
 
               {activeTab === 'gradient' && (
                 gradientFixes.length ? (
-                  gradientFixes.map((g) => (
-                    <button
-                      key={g.css}
-                      type="button"
-                      onClick={() => setGradient(g.css)}
-                      className="border rounded-md flex flex-col hover:bg-gray-50 overflow-hidden"
-                    >
-                      <div className="h-24" style={{ background: g.css }} />
-                      <div className="p-2 text-xs flex justify-between items-center">
-                        <span>Min {g.minRatio.toFixed(1)}:1</span>
-                        <span className={`px-1 rounded ${g.minRatio >= 7 ? 'bg-emerald-100 text-emerald-700' : g.minRatio >= 4.5 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{g.minRatio >= 7 ? 'AAA' : g.minRatio >= 4.5 ? 'AA' : 'Fail'}</span>
+                  gradientFixes.map((g) => {
+                    const isActive = activeSuggestionCss === g.css;
+                    return (
+                      <div
+                        key={g.css}
+                        onClick={() => {
+                          if (!isActive) {
+                            setGradient(g.css);
+                            setActiveSuggestionCss(g.css);
+                          }
+                        }}
+                        role="button"
+                        tabIndex={0}
+                        className={`border rounded-md flex flex-col overflow-hidden cursor-pointer focus:outline-none ${isActive ? 'ring-2 ring-emerald-500' : 'hover:bg-gray-50'}`}
+                        onKeyDown={(e) => {
+                          if ((e.key === 'Enter' || e.key === ' ') && !isActive) {
+                            setGradient(g.css);
+                            setActiveSuggestionCss(g.css);
+                          }
+                        }}
+                      >
+                        <div className="h-24" style={{ background: g.css }} />
+                        <div className="p-2 text-xs flex justify-between items-center">
+                          <span>Min {g.minRatio.toFixed(1)}:1</span>
+                          <Tooltip content={g.minRatio >= 7 ? 'Contrast ≥ 7:1 (AAA)' : g.minRatio >= 4.5 ? 'Contrast ≥ 4.5:1 (AA)' : 'Below AA'}>
+                            <span className={`px-1 rounded ${g.minRatio >= 7 ? 'bg-emerald-100 text-emerald-700' : g.minRatio >= 4.5 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700'}`}>{g.minRatio >= 7 ? 'AAA' : g.minRatio >= 4.5 ? 'AA' : 'Fail'}</span>
+                          </Tooltip>
+                          {g.guaranteed && (
+                            <Tooltip content="Always passes AA with current text color">
+                              <span className="ml-2 text-[10px] text-emerald-700 bg-emerald-50 px-1 rounded">Guaranteed</span>
+                            </Tooltip>
+                          )}
+                        </div>
+
+                        {isActive ? (
+                          <div className="flex text-xs">
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setBaseGradient(g.css);
+                                setActiveSuggestionCss(null);
+                              }}
+                              className="flex-1 border-t py-1 text-emerald-700 hover:bg-emerald-50"
+                            >
+                              Apply
+                            </button>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setGradient(baseGradient);
+                                setActiveSuggestionCss(null);
+                              }}
+                              className="flex-1 border-t py-1 text-red-600 hover:bg-red-50"
+                            >
+                              Cancel
+                            </button>
+                          </div>
+                        ) : null}
                       </div>
-                    </button>
-                  ))
+                    );
+                  })
                 ) : (
                   <p className="col-span-full text-center text-xs text-gray-500">No gradient fixes yet. Try adjusting text color.</p>
                 )

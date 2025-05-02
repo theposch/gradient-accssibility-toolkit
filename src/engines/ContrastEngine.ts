@@ -86,7 +86,10 @@ export function sampleGradient(
   }
 
   gradientAst.colorStops.forEach((stop: ColorStop) => {
-    const pos = stop.length ? Number(stop.length.value) / 100 : undefined;
+    let pos = stop.length ? Number(stop.length.value) / 100 : undefined;
+    if (pos !== undefined) {
+      pos = Math.min(1, Math.max(0, pos));
+    }
     const color = stopToColor(stop);
     grad.addColorStop(pos ?? 0, color);
   });

@@ -7,6 +7,8 @@ interface Props {
   onParagraphChange: (v: string) => void;
   textColor: string;
   onTextColorChange: (v: string) => void;
+  textAlign: 'left' | 'center' | 'right';
+  onTextAlignChange: (v: 'left' | 'center' | 'right') => void;
 }
 
 const TextSettings: FC<Props> = ({
@@ -16,6 +18,8 @@ const TextSettings: FC<Props> = ({
   onParagraphChange,
   textColor,
   onTextColorChange,
+  textAlign,
+  onTextAlignChange,
 }) => (
   <div className="space-y-4 mt-8">
     <h2 className="font-medium">Text Settings</h2>
@@ -52,6 +56,19 @@ const TextSettings: FC<Props> = ({
           className="w-24 border rounded px-1"
         />
       </label>
+      <div className="flex items-center gap-2 text-xs">
+        <span>Align:</span>
+        {(['left', 'center', 'right'] as const).map((opt) => (
+          <button
+            key={opt}
+            type="button"
+            onClick={() => onTextAlignChange(opt)}
+            className={`px-2 py-1 border rounded ${textAlign === opt ? 'bg-gray-200' : 'hover:bg-gray-50'}`}
+          >
+            {opt.charAt(0).toUpperCase()}
+          </button>
+        ))}
+      </div>
     </div>
   </div>
 );

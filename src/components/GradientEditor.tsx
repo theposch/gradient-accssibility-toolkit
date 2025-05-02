@@ -1,5 +1,7 @@
 import { FC, useEffect, useState, useRef } from 'react';
 import { parse } from 'gradient-parser';
+import * as culori from 'culori';
+import GradientBar from './GradientBar';
 
 interface Stop {
   id: string;
@@ -63,11 +65,30 @@ const serialize = (angle: number, stops: Stop[]): string =>
     .map((s) => `${s.color.startsWith('#') ? s.color : `#${s.color}`} ${s.position}%`)
     .join(', ')})`;
 
+// Utility: adjust OKLCH lightness by delta [-1,1]
+const adjustLightness = (color: string, delta: number): string => {
+  try {
+    const oklch = culori.oklch(color);
+    if (!oklch) return color;
+    const l = Math.max(0, Math.min(1, oklch.l + delta));
+    return culori.formatHex({ ...oklch, mode: 'oklch', l });
+  } catch {
+    return color; // fallback if parse fails
+  }
+};
+
 const GradientEditor: FC<Props> = ({ gradient, onChange }) => {
   const initial = toStops(gradient);
   const [angle, setAngle] = useState<number>(initial.angle);
   const [stops, setStops] = useState<Stop[]>(initial.stops);
   const internalRef = useRef(gradient);
+
+  // selection for highlighting/Bar sync
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+
+  // history stacks
+  const [past, setPast] = useState<string[]>([]);
+  const [future, setFuture] = useState<string[]>([]);
 
   useEffect(() => {
     if (gradient !== internalRef.current) {
@@ -79,12 +100,22 @@ const GradientEditor: FC<Props> = ({ gradient, onChange }) => {
 
   useEffect(() => {
     const css = serialize(angle, stops);
-    internalRef.current = css;
-    onChange(css);
+    if (css !== internalRef.current) {
+      setPast((p) => [...p, internalRef.current]);
+      setFuture([]);
+      internalRef.current = css;
+      onChange(css);
+    }
   }, [stops, angle]);
 
+  const sortByPos = (arr: Stop[]): Stop[] =>
+    arr
+      .slice()
+      .sort((a, b) => a.position - b.position)
+      .map((s, i) => ({ ...s, id: `${i}` }));
+
   const updateStop = (id: string, patch: Partial<Stop>) => {
-    setStops((prev) => prev.map((s) => (s.id === id ? { ...s, ...patch } : s)));
+    setStops((prev) => sortByPos(prev.map((s) => (s.id === id ? { ...s, ...patch } : s))));
   };
 
   const addStop = () => {
@@ -100,6 +131,60 @@ const GradientEditor: FC<Props> = ({ gradient, onChange }) => {
 
   const removeStop = (id: string) => {
     setStops((prev) => (prev.length > 2 ? prev.filter((s) => s.id !== id) : prev));
+  };
+
+  // Light/Dark step helpers
+  const shiftLightness = (delta: number) => {
+    setStops((prev) =>
+      prev.map((s) => ({ ...s, color: adjustLightness(s.color, delta) }))
+    );
+  };
+
+  const toggleSelect = (id: string, e: React.MouseEvent) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (e.metaKey || e.ctrlKey) {
+        next.has(id) ? next.delete(id) : next.add(id);
+      } else if (e.shiftKey && prev.size) {
+        const ids = stops.map((s) => s.id);
+        const last = ids.findIndex((i) => prev.has(i));
+        const curr = ids.findIndex((i) => i === id);
+        const [start, end] = [last, curr].sort((a, b) => a - b);
+        for (let i = start; i <= end; i += 1) next.add(ids[i]);
+      } else {
+        next.clear();
+        next.add(id);
+      }
+      return next;
+    });
+  };
+
+  const jumpTo = (css: string) => {
+    const parsed = toStops(css);
+    setAngle(parsed.angle);
+    setStops(parsed.stops);
+    internalRef.current = css;
+    onChange(css);
+  };
+
+  const undo = () => {
+    setPast((p) => {
+      if (p.length === 0) return p;
+      const prev = p[p.length - 1];
+      setFuture((f) => [internalRef.current, ...f]);
+      jumpTo(prev);
+      return p.slice(0, -1);
+    });
+  };
+
+  const redo = () => {
+    setFuture((f) => {
+      if (f.length === 0) return f;
+      const next = f[0];
+      setPast((p) => [...p, internalRef.current]);
+      jumpTo(next);
+      return f.slice(1);
+    });
   };
 
   return (
@@ -124,24 +209,68 @@ const GradientEditor: FC<Props> = ({ gradient, onChange }) => {
         >
           <option value="custom">Custom</option>
           {PRESETS.map((p) => (
-            <option key={p.name} value={p.css}>{p.name}</option>
+            <option
+              key={p.name}
+              value={p.css}
+              style={{ backgroundImage: p.css, backgroundSize: '100% 100%' }}
+            >
+              {p.name}
+            </option>
           ))}
         </select>
       </label>
 
-      <h2 className="font-medium">Gradient Stops</h2>
-      <label className="block text-sm">Angle: {angle}°
-        <input
-          type="range"
-          min={0}
-          max={360}
-          value={angle}
-          onChange={(e) => setAngle(Number(e.target.value))}
-          className="w-full"
-        />
-      </label>
-      {stops.map((stop) => (
-        <div key={stop.id} className="flex items-center gap-2">
+      <div className="flex items-center gap-2">
+        <label className="block text-sm flex-1">Angle: {angle}°
+          <input
+            type="range"
+            min={0}
+            max={360}
+            value={angle}
+            onChange={(e) => setAngle(Number(e.target.value))}
+            className="w-full"
+          />
+        </label>
+        <button type="button" onClick={undo} disabled={past.length === 0} className="text-xs px-2 py-1 border rounded disabled:opacity-30">Undo</button>
+        <button type="button" onClick={redo} disabled={future.length === 0} className="text-xs px-2 py-1 border rounded disabled:opacity-30">Redo</button>
+      </div>
+
+      {/* Gradient bar preview */}
+      <GradientBar
+        stops={stops}
+        angle={angle}
+        selected={selected}
+        onChange={(upd) => {
+          setStops(sortByPos(upd));
+        }}
+        onSelect={(id) => setSelected(new Set([id]))}
+        onAdd={(stop) => setStops((prev) => sortByPos([...prev, stop]))}
+      />
+
+      {/* Lighten / Darken controls */}
+      <div className="flex gap-2 text-xs">
+        <button
+          type="button"
+          onClick={() => shiftLightness(0.05)}
+          className="flex-1 rounded border px-2 py-1 hover:bg-gray-50"
+        >
+          ▲ Lighter
+        </button>
+        <button
+          type="button"
+          onClick={() => shiftLightness(-0.05)}
+          className="flex-1 rounded border px-2 py-1 hover:bg-gray-50"
+        >
+          ▼ Darker
+        </button>
+      </div>
+
+      {stops.map((stop, idx) => (
+        <div
+          key={stop.id}
+          className={`flex items-center gap-2 ${selected.has(stop.id) ? 'bg-emerald-50 ring-2 ring-emerald-400' : ''}`}
+          onClick={(e) => toggleSelect(stop.id, e)}
+        >
           <input
             type="color"
             value={stop.color}
@@ -155,14 +284,14 @@ const GradientEditor: FC<Props> = ({ gradient, onChange }) => {
             className="w-24 border rounded px-1 text-sm"
           />
           <input
-            type="range"
+            type="number"
             min={0}
             max={100}
             value={stop.position}
             onChange={(e) => updateStop(stop.id, { position: Number(e.target.value) })}
-            className="flex-1"
+            className="w-20 border rounded px-1 text-xs"
           />
-          <span className="w-10 text-right text-xs">{stop.position}%</span>
+          <span className="text-xs">%</span>
           {stops.length > 2 && (
             <button
               type="button"
