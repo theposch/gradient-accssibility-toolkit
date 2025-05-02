@@ -9,20 +9,23 @@
     "preview": "vite preview",
     "lint": "eslint . --ext .ts,.tsx --max-warnings 0",
     "format": "prettier --write .",
-    "test": "vitest"
+    "test": "vitest",
+    "test:e2e": "playwright test",
+    "test:e2e:debug": "playwright test --headed --debug"
   },
   "dependencies": {
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "class-variance-authority": "^0.7.0",
-    "lucide-react": "^0.257.0",
-    "tailwind-merge": "^1.14.0",
     "@radix-ui/react-slot": "^1.0.1",
+    "class-variance-authority": "^0.7.0",
     "culori": "^4.0.1",
     "gradient-parser": "^1.1.1",
-    "sonner": "^1.2.0"
+    "lucide-react": "^0.257.0",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "sonner": "^1.2.0",
+    "tailwind-merge": "^1.14.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.52.0",
     "@testing-library/jest-dom": "^6.0.0",
     "@testing-library/react": "^14.0.0",
     "@types/react": "^18.2.21",
@@ -38,9 +41,9 @@
     "postcss": "^8.4.24",
     "prettier": "^3.0.3",
     "tailwindcss": "^3.3.3",
+    "tailwindcss-animate": "^1.0.6",
     "typescript": "^5.2.2",
     "vite": "^4.5.0",
-    "vitest": "^0.34.6",
-    "tailwindcss-animate": "^1.0.6"
+    "vitest": "^0.34.6"
   }
-} 
+}
