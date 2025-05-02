@@ -14,9 +14,8 @@ test('gradient flow', async ({ page }) => {
   // Ensure overlay grid slider appears
   await expect(page.getByText('Grid:')).toBeVisible();
 
-  // Open gradient preset dropdown and choose second preset
-  await page.getByLabel('Preset').click();
-  await page.getByRole('option', { name: /Lavender Mist/i }).click();
+  // Select 'Lavender Mist' preset via selectOption API
+  await page.getByLabel('Preset').selectOption({ label: 'Lavender Mist' });
 
   // Check that AA pass percentage updates (analysis panel)
   const stat = await page.getByText(/AA \(/).textContent();
