@@ -14,10 +14,10 @@ test('contrast analysis pass / fail', async ({ page }) => {
   // Case 1: choose Peach Glow (light) with white text – should fail AA ( < 40% )
   await page.getByLabel('Preset').selectOption({ label: 'Peach Glow' });
   // Wait for Poor rating to appear
-  const poorRating = page.locator('div:has-text("Poor (" )');
-  await expect(poorRating).toBeVisible();
+  const ratingBadge = page.getByTestId('rating-badge');
+  await expect(ratingBadge).toContainText('Poor');
 
   // Case 2: choose Ocean Depths (dark) with white text – should improve rating (not Poor)
   await page.getByLabel('Preset').selectOption({ label: 'Ocean Depths' });
-  await expect(poorRating).toBeHidden();
+  await expect(ratingBadge).not.toContainText('Poor');
 }); 
