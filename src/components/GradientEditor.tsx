@@ -86,10 +86,6 @@ const GradientEditor: FC<Props> = ({ gradient, onChange }) => {
   // selection for highlighting/Bar sync
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
-  // history stacks
-  const [past, setPast] = useState<string[]>([]);
-  const [future, setFuture] = useState<string[]>([]);
-
   useEffect(() => {
     if (gradient !== internalRef.current) {
       const parsed = toStops(gradient);
@@ -100,12 +96,8 @@ const GradientEditor: FC<Props> = ({ gradient, onChange }) => {
 
   useEffect(() => {
     const css = serialize(angle, stops);
-    if (css !== internalRef.current) {
-      setPast((p) => [...p, internalRef.current]);
-      setFuture([]);
-      internalRef.current = css;
-      onChange(css);
-    }
+    internalRef.current = css;
+    onChange(css);
   }, [stops, angle]);
 
   const sortByPos = (arr: Stop[]): Stop[] =>
@@ -159,34 +151,6 @@ const GradientEditor: FC<Props> = ({ gradient, onChange }) => {
     });
   };
 
-  const jumpTo = (css: string) => {
-    const parsed = toStops(css);
-    setAngle(parsed.angle);
-    setStops(parsed.stops);
-    internalRef.current = css;
-    onChange(css);
-  };
-
-  const undo = () => {
-    setPast((p) => {
-      if (p.length === 0) return p;
-      const prev = p[p.length - 1];
-      setFuture((f) => [internalRef.current, ...f]);
-      jumpTo(prev);
-      return p.slice(0, -1);
-    });
-  };
-
-  const redo = () => {
-    setFuture((f) => {
-      if (f.length === 0) return f;
-      const next = f[0];
-      setPast((p) => [...p, internalRef.current]);
-      jumpTo(next);
-      return f.slice(1);
-    });
-  };
-
   return (
     <div className="space-y-4">
       <label className="block text-sm">
@@ -231,8 +195,6 @@ const GradientEditor: FC<Props> = ({ gradient, onChange }) => {
             className="w-full"
           />
         </label>
-        <button type="button" onClick={undo} disabled={past.length === 0} className="text-xs px-2 py-1 border rounded disabled:opacity-30">Undo</button>
-        <button type="button" onClick={redo} disabled={future.length === 0} className="text-xs px-2 py-1 border rounded disabled:opacity-30">Redo</button>
       </div>
 
       {/* Gradient bar preview */}

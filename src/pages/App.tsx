@@ -1,5 +1,5 @@
-import { FC, useEffect, useState } from 'react';
-import { Menu, Layers, Clipboard } from 'lucide-react';
+import { FC, useEffect, useState, useRef } from 'react';
+import { Menu, Layers, Clipboard, Undo, Redo } from 'lucide-react';
 import GradientCanvas from '@/components/GradientCanvas';
 import { type ContrastResult } from '@/engines/ContrastEngine';
 import ContrastAnalysisPanel from '@/components/ContrastAnalysisPanel';
@@ -50,6 +50,67 @@ const App: FC = () => {
 
   const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
 
+  // Font management
+  const [customFonts, setCustomFonts] = useState<Array<{ name: string; url: string }>>([]);
+  const [currentFont, setCurrentFont] = useState<string>('system-ui');
+  const [customFontStyles, setCustomFontStyles] = useState({
+    headlineSize: '3rem',
+    headlineHeight: '1.2',
+    headlineSpacing: '0',
+    paragraphSize: '0.875rem',
+    paragraphHeight: '1.5',
+    paragraphSpacing: '0',
+  });
+
+  // history for gradient+textColor
+  const [past, setPast] = useState<{ g: string; c: string }[]>([]);
+  const [future, setFuture] = useState<{ g: string; c: string }[]>([]);
+  const prevRef = useRef<{ g: string; c: string }>({ g: baseGradient, c: textColor });
+  const skipHistory = useRef(false);
+
+  // preview split
+  const [previewMode, setPreviewMode] = useState<'gradient' | 'imageSplit'>('gradient');
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (skipHistory.current) {
+      skipHistory.current = false;
+    } else {
+      const prev = prevRef.current;
+      if (prev.g !== baseGradient || prev.c !== textColor) {
+        setPast((p) => [...p, prev]);
+        setFuture([]);
+      }
+    }
+    prevRef.current = { g: baseGradient, c: textColor };
+  }, [baseGradient, textColor]);
+
+  const undo = () => {
+    setPast((p) => {
+      if (p.length === 0) return p;
+      const prev = p[p.length - 1];
+      setFuture((f) => [{ g: baseGradient, c: textColor }, ...f]);
+      skipHistory.current = true;
+      setBaseGradient(prev.g);
+      setGradient(prev.g);
+      setTextColor(prev.c);
+      return p.slice(0, -1);
+    });
+  };
+
+  const redo = () => {
+    setFuture((f) => {
+      if (f.length === 0) return f;
+      const nxt = f[0];
+      setPast((p) => [...p, { g: baseGradient, c: textColor }]);
+      skipHistory.current = true;
+      setBaseGradient(nxt.g);
+      setGradient(nxt.g);
+      setTextColor(nxt.c);
+      return f.slice(1);
+    });
+  };
+
   const handleSave = () => {
     if (!analysis) return;
     const item: SavedGradient = { id: crypto.randomUUID(), gradient, textColor, passPct: Math.round(analysis.passRate * 100) };
@@ -79,12 +140,54 @@ const App: FC = () => {
     setGradientFixes(suggestGradientFixes(baseGradient, textColor, grid));
   }, [baseGradient, textColor, grid]);
 
+  const handleFontUpload = async (file: File) => {
+    try {
+      // Create object URL for the font file
+      const url = URL.createObjectURL(file);
+      
+      // Create a name for the font (use filename without extension)
+      const name = file.name.replace(/\.[^/.]+$/, "");
+      
+      // Create and load the font
+      const font = new FontFace(name, `url(${url})`);
+      const loadedFont = await font.load();
+      
+      // Add font to document
+      document.fonts.add(loadedFont);
+      
+      // Update state
+      setCustomFonts(prev => [...prev, { name, url }]);
+      setCurrentFont(name);
+      
+      toast.success(`Font "${name}" loaded successfully`);
+    } catch (error) {
+      console.error('Error loading font:', error);
+      toast.error('Failed to load font');
+    }
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
       <header className="flex items-center justify-between px-6 py-4 border-b bg-white">
         <h1 className="text-xl font-semibold">Contrast Checker</h1>
         <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={undo}
+            disabled={past.length === 0}
+            className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-100 disabled:opacity-30"
+          >
+            <Undo className="w-4 h-4" />
+          </button>
+          <button
+            type="button"
+            onClick={redo}
+            disabled={future.length === 0}
+            className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-100 disabled:opacity-30"
+          >
+            <Redo className="w-4 h-4" />
+          </button>
           <button
             type="button"
             onClick={() => {
@@ -95,6 +198,13 @@ const App: FC = () => {
           >
             <Clipboard className="w-4 h-4" />
             Copy CSS
+          </button>
+          <button
+            type="button"
+            onClick={() => setPreviewMode(previewMode === 'gradient' ? 'imageSplit' : 'gradient')}
+            className="inline-flex items-center gap-2 rounded-md border px-3 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-100"
+          >
+            {previewMode === 'gradient' ? 'Image Split' : 'Gradient Only'}
           </button>
           <button
             type="button"
@@ -131,6 +241,12 @@ const App: FC = () => {
             onTextColorChange={setTextColor}
             textAlign={textAlign}
             onTextAlignChange={setTextAlign}
+            currentFont={currentFont}
+            onFontChange={setCurrentFont}
+            customFonts={customFonts}
+            onFontUpload={handleFontUpload}
+            customFontStyles={customFontStyles}
+            onCustomFontStyleChange={(styles) => setCustomFontStyles(prev => ({ ...prev, ...styles }))}
           />
         </aside>
 
@@ -138,7 +254,7 @@ const App: FC = () => {
         <section className="flex-1 overflow-y-auto p-6">
           <div className="w-full rounded-lg border flex flex-col h-full">
             {/* Gradient Preview */}
-            <div className="relative h-60 border-b group">
+            <div className="relative h-80 border-b group">
               <button
                 type="button"
                 onClick={() => setShowOverlay((v) => !v)}
@@ -150,26 +266,143 @@ const App: FC = () => {
                 </Tooltip>
               </button>
               <div className="absolute inset-0 pointer-events-none">
-                <GradientCanvas
-                  gradient={gradient}
-                  textColor={textColor}
-                  grid={grid}
-                  showOverlay={showOverlay}
-                  onAnalysis={setAnalysis}
-                  className="h-full"
-                />
-                <div
-                  className={`absolute inset-0 select-none px-4 flex flex-col justify-center ${textAlign === 'left' ? 'items-start' : textAlign === 'center' ? 'items-center' : 'items-end'}`}
-                >
-                  <div style={{ color: textColor }}>
-                    <h1 className="text-5xl font-semibold tracking-wide" style={{ textAlign }}>
-                      {headline}
-                    </h1>
-                    <p className="max-w-xl mt-4 text-sm leading-relaxed" style={{ textAlign }}>
-                      {paragraph}
-                    </p>
+                {previewMode === 'gradient' ? (
+                  <div className="relative h-full">
+                    <GradientCanvas
+                      gradient={gradient}
+                      textColor={textColor}
+                      grid={grid}
+                      showOverlay={showOverlay}
+                      onAnalysis={setAnalysis}
+                      className="h-full"
+                    />
+                    <div
+                      className={`absolute inset-0 select-none px-4 flex flex-col justify-center ${textAlign === 'left' ? 'items-start' : textAlign === 'center' ? 'items-center' : 'items-end'}`}
+                    >
+                      <h1 
+                        className="text-5xl font-semibold tracking-wide" 
+                        style={{ 
+                          color: textColor, 
+                          textAlign, 
+                          fontFamily: currentFont,
+                          ...(customFonts.some(f => f.name === currentFont) ? {
+                            fontSize: customFontStyles.headlineSize,
+                            lineHeight: customFontStyles.headlineHeight,
+                            letterSpacing: customFontStyles.headlineSpacing,
+                          } : {})
+                        }}
+                      >
+                        {headline}
+                      </h1>
+                      <p 
+                        className="max-w-xl mt-4 text-sm leading-relaxed" 
+                        style={{ 
+                          color: textColor, 
+                          textAlign, 
+                          fontFamily: currentFont,
+                          ...(customFonts.some(f => f.name === currentFont) ? {
+                            fontSize: customFontStyles.paragraphSize,
+                            lineHeight: customFontStyles.paragraphHeight,
+                            letterSpacing: customFontStyles.paragraphSpacing,
+                          } : {})
+                        }}
+                      >
+                        {paragraph}
+                      </p>
+                    </div>
                   </div>
-                </div>
+                ) : (
+                  <div className="flex h-full w-full flex-col md:flex-row">
+                    {/* Image half */}
+                    <div className="w-full md:w-1/2 h-1/2 md:h-full relative group">
+                      {previewImage ? (
+                        <>
+                          <img src={previewImage} className="w-full h-full object-cover" />
+                          <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center pointer-events-none">
+                            <label className="cursor-pointer px-3 py-2 bg-white/90 rounded-md text-sm hover:bg-white pointer-events-auto">
+                              <input
+                                type="file"
+                                accept="image/*"
+                                className="hidden"
+                                onChange={(e) => {
+                                  const file = e.target.files?.[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => setPreviewImage(ev.target?.result as string);
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                              Replace Image
+                            </label>
+                          </div>
+                        </>
+                      ) : (
+                        <label className="w-full h-full flex items-center justify-center border-dashed border-2 text-xs cursor-pointer" style={{ pointerEvents: 'auto' }}>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            onChange={(e) => {
+                              const file = e.target.files?.[0];
+                              if (file) {
+                                const reader = new FileReader();
+                                reader.onload = (ev) => setPreviewImage(ev.target?.result as string);
+                                reader.readAsDataURL(file);
+                              }
+                            }}
+                          />
+                          Upload Image
+                        </label>
+                      )}
+                    </div>
+                    {/* Gradient half */}
+                    <div className="w-full md:w-1/2 h-1/2 md:h-full relative">
+                      <GradientCanvas
+                        gradient={gradient}
+                        textColor={textColor}
+                        grid={grid}
+                        showOverlay={showOverlay}
+                        onAnalysis={setAnalysis}
+                        className="h-full w-full"
+                      />
+                      <div
+                        className={`absolute inset-0 select-none px-4 flex flex-col justify-center ${textAlign === 'left' ? 'items-start' : textAlign === 'center' ? 'items-center' : 'items-end'}`}
+                      >
+                        <h1 
+                          className="text-5xl font-semibold tracking-wide" 
+                          style={{ 
+                            color: textColor, 
+                            textAlign, 
+                            fontFamily: currentFont,
+                            ...(customFonts.some(f => f.name === currentFont) ? {
+                              fontSize: customFontStyles.headlineSize,
+                              lineHeight: customFontStyles.headlineHeight,
+                              letterSpacing: customFontStyles.headlineSpacing,
+                            } : {})
+                          }}
+                        >
+                          {headline}
+                        </h1>
+                        <p 
+                          className="max-w-xl mt-4 text-sm leading-relaxed" 
+                          style={{ 
+                            color: textColor, 
+                            textAlign, 
+                            fontFamily: currentFont,
+                            ...(customFonts.some(f => f.name === currentFont) ? {
+                              fontSize: customFontStyles.paragraphSize,
+                              lineHeight: customFontStyles.paragraphHeight,
+                              letterSpacing: customFontStyles.paragraphSpacing,
+                            } : {})
+                          }}
+                        >
+                          {paragraph}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
