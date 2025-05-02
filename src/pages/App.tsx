@@ -1,7 +1,7 @@
 import { FC, useEffect, useState, useRef } from 'react';
 import { Menu, Layers, Clipboard, Undo, Redo } from 'lucide-react';
 import GradientCanvas from '@/components/GradientCanvas';
-import { type ContrastResult } from '@/engines/ContrastEngine';
+import { ContrastResult } from '@/types';
 import ContrastAnalysisPanel from '@/components/ContrastAnalysisPanel';
 import TextOverlay from '@/components/TextOverlay';
 import {
@@ -13,9 +13,16 @@ import {
 import GradientEditor from '@/components/GradientEditor';
 import TextSettings from '@/components/TextSettings';
 import SavedDrawer from '@/components/SavedDrawer';
-import { loadSaved, saveAll, type SavedGradient } from '@/utils/storage';
+import { loadSaved, saveAll } from '@/utils/storage';
 import { toast } from 'sonner';
 import Tooltip from '@/components/Tooltip';
+import {
+  CustomFont,
+  CustomFontStyles,
+  SavedGradient,
+  TextAlignment,
+  HistoryEntry
+} from '@/types';
 
 const App: FC = () => {
   const [showOverlay, setShowOverlay] = useState(false);
@@ -49,12 +56,12 @@ const App: FC = () => {
   // Grid resolution for sampling (50–200)
   const [grid, setGrid] = useState(100);
 
-  const [textAlign, setTextAlign] = useState<'left' | 'center' | 'right'>('center');
+  const [textAlign, setTextAlign] = useState<TextAlignment>('center');
 
   // Font management
-  const [customFonts, setCustomFonts] = useState<Array<{ name: string; url: string }>>([]);
+  const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
   const [currentFont, setCurrentFont] = useState<string>('system-ui');
-  const [customFontStyles, setCustomFontStyles] = useState({
+  const [customFontStyles, setCustomFontStyles] = useState<CustomFontStyles>({
     headlineSize: '3rem',
     headlineHeight: '1.2',
     headlineSpacing: '0',
@@ -64,9 +71,9 @@ const App: FC = () => {
   });
 
   // history for gradient+textColor
-  const [past, setPast] = useState<{ g: string; c: string }[]>([]);
-  const [future, setFuture] = useState<{ g: string; c: string }[]>([]);
-  const prevRef = useRef<{ g: string; c: string }>({ g: baseGradient, c: textColor });
+  const [past, setPast] = useState<HistoryEntry[]>([]);
+  const [future, setFuture] = useState<HistoryEntry[]>([]);
+  const prevRef = useRef<HistoryEntry>({ gradient: baseGradient, textColor });
   const skipHistory = useRef(false);
 
   // preview split
@@ -78,23 +85,23 @@ const App: FC = () => {
       skipHistory.current = false;
     } else {
       const prev = prevRef.current;
-      if (prev.g !== baseGradient || prev.c !== textColor) {
+      if (prev.gradient !== baseGradient || prev.textColor !== textColor) {
         setPast((p) => [...p, prev]);
         setFuture([]);
       }
     }
-    prevRef.current = { g: baseGradient, c: textColor };
+    prevRef.current = { gradient: baseGradient, textColor };
   }, [baseGradient, textColor]);
 
   const undo = () => {
     setPast((p) => {
       if (p.length === 0) return p;
       const prev = p[p.length - 1];
-      setFuture((f) => [{ g: baseGradient, c: textColor }, ...f]);
+      setFuture((f) => [{ gradient: baseGradient, textColor }, ...f]);
       skipHistory.current = true;
-      setBaseGradient(prev.g);
-      setGradient(prev.g);
-      setTextColor(prev.c);
+      setBaseGradient(prev.gradient);
+      setGradient(prev.gradient);
+      setTextColor(prev.textColor);
       return p.slice(0, -1);
     });
   };
@@ -103,11 +110,11 @@ const App: FC = () => {
     setFuture((f) => {
       if (f.length === 0) return f;
       const nxt = f[0];
-      setPast((p) => [...p, { g: baseGradient, c: textColor }]);
+      setPast((p) => [...p, { gradient: baseGradient, textColor }]);
       skipHistory.current = true;
-      setBaseGradient(nxt.g);
-      setGradient(nxt.g);
-      setTextColor(nxt.c);
+      setBaseGradient(nxt.gradient);
+      setGradient(nxt.gradient);
+      setTextColor(nxt.textColor);
       return f.slice(1);
     });
   };

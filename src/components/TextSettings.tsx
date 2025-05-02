@@ -1,4 +1,5 @@
 import { FC } from 'react';
+import { CustomFont, CustomFontStyles, TextAlignment } from '@/types';
 
 interface Props {
   headline: string;
@@ -7,21 +8,14 @@ interface Props {
   onParagraphChange: (text: string) => void;
   textColor: string;
   onTextColorChange: (color: string) => void;
-  textAlign: 'left' | 'center' | 'right';
-  onTextAlignChange: (align: 'left' | 'center' | 'right') => void;
+  textAlign: TextAlignment;
+  onTextAlignChange: (align: TextAlignment) => void;
   currentFont: string;
   onFontChange: (font: string) => void;
-  customFonts: Array<{ name: string; url: string }>;
+  customFonts: CustomFont[];
   onFontUpload: (file: File) => void;
-  customFontStyles: {
-    headlineSize: string;
-    headlineHeight: string;
-    headlineSpacing: string;
-    paragraphSize: string;
-    paragraphHeight: string;
-    paragraphSpacing: string;
-  };
-  onCustomFontStyleChange: (styles: Partial<Props['customFontStyles']>) => void;
+  customFontStyles: CustomFontStyles;
+  onCustomFontStyleChange: (styles: Partial<CustomFontStyles>) => void;
 }
 
 const SYSTEM_FONTS = [

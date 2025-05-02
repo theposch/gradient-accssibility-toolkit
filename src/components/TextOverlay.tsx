@@ -1,20 +1,14 @@
 import { FC } from 'react';
+import { CustomFont, CustomFontStyles, TextAlignment } from '@/types';
 
 interface TextOverlayProps {
   headline: string;
   paragraph: string;
   textColor: string;
-  textAlign: 'left' | 'center' | 'right';
+  textAlign: TextAlignment;
   currentFont: string;
-  customFonts: Array<{ name: string; url: string }>;
-  customFontStyles: {
-    headlineSize: string;
-    headlineHeight: string;
-    headlineSpacing: string;
-    paragraphSize: string;
-    paragraphHeight: string;
-    paragraphSpacing: string;
-  };
+  customFonts: CustomFont[];
+  customFontStyles: CustomFontStyles;
 }
 
 export const TextOverlay: FC<TextOverlayProps> = ({
