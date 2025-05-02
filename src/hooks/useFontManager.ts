@@ -15,8 +15,10 @@ export function useFontManager() {
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
   const [currentFont, setCurrentFont] = useState<string>('system-ui');
   const [customFontStyles, setCustomFontStyles] = useState<CustomFontStyles>(DEFAULT_FONT_STYLES);
+  const [uploading, setUploading] = useState(false);
 
   const handleFontUpload = async (file: File) => {
+    setUploading(true);
     try {
       // Create object URL for the font file
       const url = URL.createObjectURL(file);
@@ -39,6 +41,8 @@ export function useFontManager() {
     } catch (error) {
       console.error('Error loading font:', error);
       toast.error('Failed to load font');
+    } finally {
+      setUploading(false);
     }
   };
 
@@ -56,6 +60,7 @@ export function useFontManager() {
     setCurrentFont,
     handleFontUpload,
     updateCustomFontStyles,
+    uploading,
   };
 }
 

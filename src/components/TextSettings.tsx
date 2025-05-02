@@ -14,6 +14,7 @@ interface Props {
   onFontChange: (font: string) => void;
   customFonts: CustomFont[];
   onFontUpload: (file: File) => void;
+  uploading: boolean;
   customFontStyles: CustomFontStyles;
   onCustomFontStyleChange: (styles: Partial<CustomFontStyles>) => void;
 }
@@ -41,6 +42,7 @@ const TextSettings: FC<Props> = ({
   onFontChange,
   customFonts,
   onFontUpload,
+  uploading,
   customFontStyles,
   onCustomFontStyleChange,
 }) => {
@@ -73,8 +75,8 @@ const TextSettings: FC<Props> = ({
               </optgroup>
             )}
           </select>
-          <label className="px-2 py-1 border rounded text-sm hover:bg-gray-50 cursor-pointer">
-            Upload
+          <label className={`px-2 py-1 border rounded text-sm ${uploading ? 'opacity-60 pointer-events-none' : 'hover:bg-gray-50 cursor-pointer'}`}>
+            {uploading ? 'Uploading…' : 'Upload'}
             <input
               type="file"
               accept=".ttf,.otf,.woff,.woff2"

@@ -66,7 +66,8 @@ const App: FC = () => {
     customFontStyles,
     setCurrentFont,
     handleFontUpload,
-    updateCustomFontStyles
+    updateCustomFontStyles,
+    uploading
   } = useFontManager();
 
   // history for gradient+textColor
@@ -226,6 +227,7 @@ const App: FC = () => {
             onFontChange={setCurrentFont}
             customFonts={customFonts}
             onFontUpload={handleFontUpload}
+            uploading={uploading}
             customFontStyles={customFontStyles}
             onCustomFontStyleChange={updateCustomFontStyles}
           />
