@@ -1,5 +1,6 @@
 import { FC } from 'react';
 import { CustomFont, CustomFontStyles, TextAlignment } from '@/types';
+import { SYSTEM_FONTS } from '@/constants/fonts';
 
 interface Props {
   headline: string;
@@ -18,16 +19,6 @@ interface Props {
   customFontStyles: CustomFontStyles;
   onCustomFontStyleChange: (styles: Partial<CustomFontStyles>) => void;
 }
-
-const SYSTEM_FONTS = [
-  'system-ui',
-  'Arial',
-  'Helvetica',
-  'Times New Roman',
-  'Georgia',
-  'Verdana',
-  'Courier New'
-];
 
 const TextSettings: FC<Props> = ({
   headline,

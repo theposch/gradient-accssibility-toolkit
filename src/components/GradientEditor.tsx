@@ -2,6 +2,7 @@ import { FC, useEffect, useState, useRef } from 'react';
 import { parse } from 'gradient-parser';
 import * as culori from 'culori';
 import GradientBar from './GradientBar';
+import { GRADIENT_PRESETS } from '@/constants/gradientPresets';
 
 interface Stop {
   id: string;
@@ -14,28 +15,7 @@ interface Props {
   onChange: (css: string) => void;
 }
 
-const PRESETS = [
-  { name: 'Peach Glow', css: 'linear-gradient(180deg, #FFB9B6 0%, #EED5A5 100%)' },
-  { name: 'Lavender Mist', css: 'linear-gradient(180deg, #FEDFFF 0%, #938DC9 100%)' },
-  { name: 'Cotton Candy Fate', css: 'linear-gradient(180deg, #F9F8F5 2%, #EFFFFF 10.5%, #FF8CB3 100%)' },
-  { name: 'Golden Sunrise', css: 'linear-gradient(180deg, #FFFDCC 0%, #FEC1CF 100%)' },
-  { name: 'Blush Bloom', css: 'linear-gradient(180deg, #FFB3BB 0%, #E3B5E5 100%)' },
-  { name: 'Skyline Drift', css: 'linear-gradient(180deg, #B7E8F4 0%, #8F94CC 100%)' },
-  { name: 'Rosy Horizon', css: 'linear-gradient(245deg, #FF9DBA 16.22%, #80C6EA 100.53%)' },
-  { name: 'Dusky Rose', css: 'linear-gradient(180deg, #FE95B5 0%, #988FC6 100%)' },
-  { name: 'Morning Light', css: 'linear-gradient(205deg, #FEFF8F 0%, #FE5A51 100%)' },
-  { name: 'Ethereal Ice', css: 'linear-gradient(180deg, #FED6FD 0%, #9EEDF4 100%)' },
-  { name: 'Soft Sunset', css: 'linear-gradient(180deg, #FFC2D5 0%, #55B9EA 100%)' },
-  { name: 'Blueberry Dream', css: 'linear-gradient(180deg, #B3ECF3 0%, #8985D5 100%)' },
-  { name: 'Lilac Mirage', css: 'linear-gradient(180deg, #A15CCE 0%, #FEA7EE 100%)' },
-  { name: 'Velvet Ember', css: 'linear-gradient(180deg, #B00000 0%, #E4C2E7 100%)' },
-  { name: 'Mint Breeze', css: 'linear-gradient(180deg, #FFFFC7 0%, #97E5D0 100%)' },
-  { name: 'Ocean Depths', css: 'linear-gradient(180deg, #00A6E0 0%, #014DAD 100%)' },
-  { name: 'Dawn Serenity', css: 'linear-gradient(180deg, #FBF9D2 0%, #0069B1 100%)' },
-  { name: 'Amethyst Haze', css: 'linear-gradient(180deg, #ED97D4 0%, #793A6F 100%)' },
-  { name: 'Molten Gold', css: 'linear-gradient(180deg, #B30E00 0%, #FEC700 100%)' },
-  { name: 'Golden Olive', css: 'linear-gradient(180deg, #FBDA02 0%, #839A32 100%)' },
-] as const;
+const PRESETS = GRADIENT_PRESETS;
 
 const toStops = (css: string): { angle: number; stops: Stop[] } => {
   try {
