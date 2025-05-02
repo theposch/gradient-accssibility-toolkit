@@ -23,6 +23,7 @@ import {
   TextAlignment,
   HistoryEntry
 } from '@/types';
+import useFontManager from '@/hooks/useFontManager';
 
 const App: FC = () => {
   const [showOverlay, setShowOverlay] = useState(false);
@@ -59,16 +60,14 @@ const App: FC = () => {
   const [textAlign, setTextAlign] = useState<TextAlignment>('center');
 
   // Font management
-  const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
-  const [currentFont, setCurrentFont] = useState<string>('system-ui');
-  const [customFontStyles, setCustomFontStyles] = useState<CustomFontStyles>({
-    headlineSize: '3rem',
-    headlineHeight: '1.2',
-    headlineSpacing: '0',
-    paragraphSize: '0.875rem',
-    paragraphHeight: '1.5',
-    paragraphSpacing: '0',
-  });
+  const {
+    customFonts,
+    currentFont,
+    customFontStyles,
+    setCurrentFont,
+    handleFontUpload,
+    updateCustomFontStyles
+  } = useFontManager();
 
   // history for gradient+textColor
   const [past, setPast] = useState<HistoryEntry[]>([]);
@@ -147,32 +146,6 @@ const App: FC = () => {
     setTextSuggestions(suggestTextColors(baseGradient));
     setGradientFixes(suggestGradientFixes(baseGradient, textColor, grid));
   }, [baseGradient, textColor, grid]);
-
-  const handleFontUpload = async (file: File) => {
-    try {
-      // Create object URL for the font file
-      const url = URL.createObjectURL(file);
-      
-      // Create a name for the font (use filename without extension)
-      const name = file.name.replace(/\.[^/.]+$/, "");
-      
-      // Create and load the font
-      const font = new FontFace(name, `url(${url})`);
-      const loadedFont = await font.load();
-      
-      // Add font to document
-      document.fonts.add(loadedFont);
-      
-      // Update state
-      setCustomFonts(prev => [...prev, { name, url }]);
-      setCurrentFont(name);
-      
-      toast.success(`Font "${name}" loaded successfully`);
-    } catch (error) {
-      console.error('Error loading font:', error);
-      toast.error('Failed to load font');
-    }
-  };
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -254,7 +227,7 @@ const App: FC = () => {
             customFonts={customFonts}
             onFontUpload={handleFontUpload}
             customFontStyles={customFontStyles}
-            onCustomFontStyleChange={(styles) => setCustomFontStyles(prev => ({ ...prev, ...styles }))}
+            onCustomFontStyleChange={updateCustomFontStyles}
           />
         </aside>
 
