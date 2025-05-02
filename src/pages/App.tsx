@@ -24,6 +24,7 @@ import {
   HistoryEntry
 } from '@/types';
 import useFontManager from '@/hooks/useFontManager';
+import useGradientHistory from '@/hooks/useGradientHistory';
 
 const App: FC = () => {
   const [showOverlay, setShowOverlay] = useState(false);
@@ -70,54 +71,29 @@ const App: FC = () => {
     uploading
   } = useFontManager();
 
-  // history for gradient+textColor
-  const [past, setPast] = useState<HistoryEntry[]>([]);
-  const [future, setFuture] = useState<HistoryEntry[]>([]);
-  const prevRef = useRef<HistoryEntry>({ gradient: baseGradient, textColor });
-  const skipHistory = useRef(false);
+  const history = useGradientHistory({ gradient: baseGradient, textColor });
 
   // preview split
   const [previewMode, setPreviewMode] = useState<'gradient' | 'imageSplit'>('gradient');
   const [previewImage, setPreviewImage] = useState<string | null>(null);
 
+  // Replace previous manual history logic
+  const undo = () => history.undo((entry) => {
+    setBaseGradient(entry.gradient);
+    setGradient(entry.gradient);
+    setTextColor(entry.textColor);
+  });
+
+  const redo = () => history.redo((entry) => {
+    setBaseGradient(entry.gradient);
+    setGradient(entry.gradient);
+    setTextColor(entry.textColor);
+  });
+
+  // Instead of complex effect, just record changes
   useEffect(() => {
-    if (skipHistory.current) {
-      skipHistory.current = false;
-    } else {
-      const prev = prevRef.current;
-      if (prev.gradient !== baseGradient || prev.textColor !== textColor) {
-        setPast((p) => [...p, prev]);
-        setFuture([]);
-      }
-    }
-    prevRef.current = { gradient: baseGradient, textColor };
+    history.record({ gradient: baseGradient, textColor });
   }, [baseGradient, textColor]);
-
-  const undo = () => {
-    setPast((p) => {
-      if (p.length === 0) return p;
-      const prev = p[p.length - 1];
-      setFuture((f) => [{ gradient: baseGradient, textColor }, ...f]);
-      skipHistory.current = true;
-      setBaseGradient(prev.gradient);
-      setGradient(prev.gradient);
-      setTextColor(prev.textColor);
-      return p.slice(0, -1);
-    });
-  };
-
-  const redo = () => {
-    setFuture((f) => {
-      if (f.length === 0) return f;
-      const nxt = f[0];
-      setPast((p) => [...p, { gradient: baseGradient, textColor }]);
-      skipHistory.current = true;
-      setBaseGradient(nxt.gradient);
-      setGradient(nxt.gradient);
-      setTextColor(nxt.textColor);
-      return f.slice(1);
-    });
-  };
 
   const handleSave = () => {
     if (!analysis) return;
@@ -157,7 +133,7 @@ const App: FC = () => {
           <button
             type="button"
             onClick={undo}
-            disabled={past.length === 0}
+            disabled={history.past.length === 0}
             className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-100 disabled:opacity-30"
           >
             <Undo className="w-4 h-4" />
@@ -165,7 +141,7 @@ const App: FC = () => {
           <button
             type="button"
             onClick={redo}
-            disabled={future.length === 0}
+            disabled={history.future.length === 0}
             className="inline-flex items-center gap-1 rounded-md border px-2 py-1.5 text-sm font-medium shadow-sm hover:bg-gray-100 disabled:opacity-30"
           >
             <Redo className="w-4 h-4" />
