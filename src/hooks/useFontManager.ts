@@ -11,6 +11,20 @@ const DEFAULT_FONT_STYLES: CustomFontStyles = {
   paragraphSpacing: '0',
 };
 
+/**
+ * useFontManager
+ *
+ * Custom React hook that encapsulates all font-related logic for the app.
+ * It handles:
+ *  • Uploading custom fonts via the FontFace API
+ *  • Persisting an array of uploaded fonts (name + object-URL)
+ *  • Tracking the currently selected font (system or custom)
+ *  • Managing per-font typography styles (size, line-height, letter-spacing)
+ *  • Exposing a loading flag during asynchronous upload
+ *
+ * The hook keeps its internal state isolated so the rest of the application
+ * only needs to consume the exposed API without duplicating logic.
+ */
 export function useFontManager() {
   const [customFonts, setCustomFonts] = useState<CustomFont[]>([]);
   const [currentFont, setCurrentFont] = useState<string>('system-ui');
