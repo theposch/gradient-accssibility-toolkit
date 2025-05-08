@@ -10,7 +10,7 @@ A modern, interactive toolkit for designing, analyzing, and optimizing CSS gradi
 [![WCAG 2.2](https://img.shields.io/badge/WCAG-2.2-green?style=for-the-badge)](https://www.w3.org/TR/WCAG22/)
 [![Netlify Status](https://api.netlify.com/api/v1/badges/your-netlify-id/deploy-status)](https://app.netlify.com/)
 
-> Keywords: accessibility, WCAG, contrast checker, gradient generator, CSS tools, web design, color contrast, a11y, React components, design tools
+![Demo of Gradient Accessibility Checker](.github/assets/demo.gif)
 
 ---
 
