@@ -2,11 +2,13 @@
 
 A modern, interactive toolkit for designing, analyzing, and optimizing CSS gradients for accessible text overlays. Built with React, it provides real-time contrast analysis, smart suggestions, and a rich editing experience for designers and developers.
 
+🔗 **[Live Demo](https://gradient-accessibility.netlify.app/)**
+
 ---
 
 ## Features
 
-- **Visual Gradient Editor:** Intuitive UI for creating and editing multi-stop CSS gradients.
+- **Visual Gradient Editor:** UI for creating and editing multi-stop CSS gradients.
 - **Text Overlay & Typography:** Add, style, and align text over gradients. Upload custom fonts and adjust typography.
 - **Contrast Analysis:** Real-time WCAG 2.2 contrast checking across the entire gradient, with pass/fail visualization.
 - **Smart Suggestions:**
@@ -115,4 +117,4 @@ Pull requests and issues are welcome! Please open an issue to discuss major chan
 
 ## License
 
-[MIT](LICENSE) (or specify your license here) 
+[MIT](LICENSE) 
