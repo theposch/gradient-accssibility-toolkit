@@ -4,6 +4,14 @@ A modern, interactive toolkit for designing, analyzing, and optimizing CSS gradi
 
 🔗 **[Live Demo](https://gradient-accessibility.netlify.app/)**
 
+[![React](https://img.shields.io/badge/React-20232A?style=for-the-badge&logo=react&logoColor=61DAFB)](https://reactjs.org/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![WCAG 2.2](https://img.shields.io/badge/WCAG-2.2-green?style=for-the-badge)](https://www.w3.org/TR/WCAG22/)
+[![Netlify Status](https://api.netlify.com/api/v1/badges/your-netlify-id/deploy-status)](https://app.netlify.com/)
+
+> Keywords: accessibility, WCAG, contrast checker, gradient generator, CSS tools, web design, color contrast, a11y, React components, design tools
+
 ---
 
 ## Features
