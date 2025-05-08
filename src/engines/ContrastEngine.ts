@@ -5,6 +5,18 @@
 import { parse, type ColorStop } from 'gradient-parser';
 import * as culori from 'culori';
 
+// Add types for gradient-parser
+interface GradientOrientation {
+  type: 'directional' | 'angular';
+  value: string;
+}
+
+interface GradientNode {
+  type: string;
+  orientation?: GradientOrientation;
+  colorStops: ColorStop[];
+}
+
 export type ContrastResult = {
   min: number;
   max: number;
@@ -66,12 +78,43 @@ export function sampleGradient(
 
   // Fill gradient via ctx API for pixel-perfect browser rendering
   // We only support linear/radial for now (conic later)
-  const gradientAst = parse(gradientCSS)[0];
+  const gradientAst = parse(gradientCSS)[0] as GradientNode;
   if (!gradientAst) throw new Error('Invalid gradient');
 
   let grad: CanvasGradient;
   if (gradientAst.type === 'linear-gradient') {
-    grad = ctx.createLinearGradient(0, 0, grid, grid);
+    // Extract angle from orientation
+    let angle = 180; // default top-to-bottom
+    if (gradientAst.orientation?.type === 'angular') {
+      angle = Number(gradientAst.orientation.value);
+    } else if (gradientAst.orientation?.type === 'directional') {
+      // Convert keywords to angles
+      const directions: { [key: string]: number } = {
+        'top': 0,
+        'right': 90,
+        'bottom': 180,
+        'left': 270,
+        'top right': 45,
+        'right top': 45,
+        'bottom right': 135,
+        'right bottom': 135,
+        'bottom left': 225,
+        'left bottom': 225,
+        'top left': 315,
+        'left top': 315,
+      };
+      angle = directions[gradientAst.orientation.value] || 180;
+    }
+    
+    // Convert angle to radians and calculate end points
+    const radian = (angle - 90) * Math.PI / 180;
+    const halfSize = grid / 2;
+    const startX = halfSize - Math.cos(radian) * halfSize;
+    const startY = halfSize - Math.sin(radian) * halfSize;
+    const endX = halfSize + Math.cos(radian) * halfSize;
+    const endY = halfSize + Math.sin(radian) * halfSize;
+    
+    grad = ctx.createLinearGradient(startX, startY, endX, endY);
   } else if (gradientAst.type === 'radial-gradient') {
     grad = ctx.createRadialGradient(
       grid / 2,
