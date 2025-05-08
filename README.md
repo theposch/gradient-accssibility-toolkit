@@ -1,4 +1,4 @@
-# Young Nails Gradient Toolkit
+# Gradient Accessibility Checker
 
 A modern, interactive toolkit for designing, analyzing, and optimizing CSS gradients for accessible text overlays. Built with React, it provides real-time contrast analysis, smart suggestions, and a rich editing experience for designers and developers.
 
